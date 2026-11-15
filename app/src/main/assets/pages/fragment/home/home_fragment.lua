@@ -106,6 +106,26 @@ function HomeFragment:_getCurrentModel()
   return nil
 end
 
+--- 返回当前主页栏目或抽屉页模型
+--- @return table|nil 阅读模型
+function HomeFragment:getReadingModel()
+  return self:_getCurrentModel()
+end
+
+--- 侧栏展开时暂停底层内容翻页
+--- @return userdata|nil 阅读视图
+function HomeFragment:getReadingView()
+  if self.views.drawer and self.views.drawer.isDrawerOpen(Gravity.LEFT) then return nil end
+  local model = self:getReadingModel()
+  return model and model.getCurrentRecyclerView and model:getCurrentRecyclerView() or nil
+end
+
+--- 避让主页底部栏目导航
+--- @return userdata|nil 底部导航
+function HomeFragment:getReadingBottomOverlay()
+  return self.homePageViews and self.homePageViews.bottom_nav
+end
+
 --- 双击标题栏，滚动当前页面到顶部
 function HomeFragment:_scrollCurrentPageToTop()
   local model = self:_getCurrentModel()

@@ -335,6 +335,7 @@ function M.setupToolbar(toolbar, options)
     menuIdMap = loadmenu(toolbar.menu, menuItems)
   end
 
+  require("helpers.page_navigation").refreshToolbar(toolbar)
   return menuIdMap
 end
 

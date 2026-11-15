@@ -198,6 +198,7 @@ function M.show(opts)
   sheet.contentView = root
   if opts.onDismiss then sheet.onDismiss = opts.onDismiss end
   dialog = sheet.show()
+  require("helpers.page_navigation").bindDialog(sheet)
   sheet.cancelable = opts.cancelable ~= false
 
   if opts.listItems and views.list_container then

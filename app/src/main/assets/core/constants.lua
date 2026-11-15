@@ -52,7 +52,7 @@ local SETTINGS = {
   { name = "SIGN_IN_DATA", default = nil, desc = "登录凭证JSON" },
 
   -- 回答页设置
-  { name = "EINK_KEY_PAGING", default = true, desc = "实体键翻当前回答" },
+  { name = "EINK_KEY_PAGING", default = true, desc = "实体键翻当前列表或正文" },
   { name = "EINK_REVERSE_KEYS", default = false, desc = "反转音量键翻页方向" },
   { name = "EINK_OVERLAP_LINES", default = 2, desc = "翻页保留重叠行数" },
   { name = "VOLUME_SWITCH_TAB", key = "answer_volume_switch", default = false, desc = "音量键切换回答" },

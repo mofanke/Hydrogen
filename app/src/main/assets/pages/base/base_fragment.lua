@@ -2,6 +2,7 @@
 -- Fragment 基类
 
 local BasePage = require("pages.base.base_page")
+local Navigation = require("helpers.page_navigation")
 
 local LuaFragment = luajava.bindClass("org.luajvm.android.host.LuaFragment")
 local LuaFragmentCreator = luajava.bindClass("org.luajvm.android.host.LuaFragment$Creator")
@@ -52,14 +53,17 @@ function BaseFragment:createFragment(paramsKey)
     end,
 
     onResume = function()
+      Navigation.activate(self)
       self:onResume()
     end,
 
     onPause = function()
+      Navigation.deactivate(self)
       self:onPause()
     end,
 
     onDestroy = function()
+      Navigation.deactivate(self)
       self:onDestroy()
     end,
 

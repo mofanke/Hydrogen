@@ -4,6 +4,7 @@
 import "androidx.activity.OnBackPressedCallback"
 import "android.view.View"
 
+local Navigation = require("helpers.page_navigation")
 local BasePage = Extensions.Class()
 -- 标记链式方法（标记会被子类自动继承，子类无需重复调用）
 BasePage:chainUp("onDestroy")
@@ -125,11 +126,43 @@ function BasePage:collectModelBottomViews(model, list)
   return list
 end
 
+--- 获取当前阅读模型，包含多 Tab 页面当前可见的模型
+--- @return table|nil 模型
+function BasePage:getReadingModel()
+  return self.model or self.peopleModel
+end
+
+--- 获取当前可见的列表或正文
+--- @return userdata|nil 阅读视图
+function BasePage:getReadingView()
+  return Navigation.readingView(self)
+end
+
+--- 获取遮挡列表底部的导航控件
+--- @return userdata|nil 导航视图
+function BasePage:getReadingBottomOverlay() end
+
+--- 翻动当前列表或正文
+--- @param direction string up 或 down
+--- @return boolean 是否消费翻页
+function BasePage:turnReadingPage(direction)
+  return Navigation.turn(self, direction)
+end
+
+--- 处理阅读页的实体按键
+--- @param keyCode number Android 按键码
+--- @return boolean 是否消费按键
+function BasePage:onReadingKeyDown(keyCode)
+  local direction = Navigation.direction(keyCode)
+  return direction and self:turnReadingPage(direction) or false
+end
+
 function BasePage:onCreate(params) end
 function BasePage:onResume() end
 function BasePage:onPause() end
 
 function BasePage:onDestroy()
+  Navigation.deactivate(self)
   -- 先置位再清理：EdgeToEdgeUtils.remove 里的 luajava.clear 会掏空视图的 Java 载荷，
   -- 置位早于 clear 才能保证存活守卫在清理中途抛错时也拦住后续回调
   self.isDestroyed = true

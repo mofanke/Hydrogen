@@ -71,13 +71,15 @@ local settingsConfig = {
   { type = "item", title = "搜索引擎", summary = "设置搜索跳转的 URL 模板", key = "search_engine", arrow = true },
   { type = "switch", title = "关闭热门搜索", summary = "搜索页不展示热门词", key = SharedDataKeys.CLOSE_HOT_SEARCH },
 
+  { type = "title", title = "墨水屏翻页" },
+  { type = "switch", title = "实体键翻页（墨水屏）", summary = "主页、日报、文章和列表：音量减下一屏，音量加上一屏", key = SharedDataKeys.EINK_KEY_PAGING },
+  { type = "switch", title = "反转音量翻页键", summary = "开启后音量加下一页、音量减上一页", key = SharedDataKeys.EINK_REVERSE_KEYS },
+  { type = "slider", title = "翻页重叠行数", summary = "上下页保留重复文字，避免页边界漏行", key = SharedDataKeys.EINK_OVERLAP_LINES, from = 1, to = 5, unit = "行", step = 1 },
+
   { type = "title", title = "回答页" },
   { type = "switch", title = "回答单页", summary = "关闭左右滑切换，一次只看一条回答", key = SharedDataKeys.ANSWER_SINGLE_PAGE },
   { type = "switch", title = "代码块自动换行", summary = "过长时换行显示，关闭则横向滑动查看", key = SharedDataKeys.CODE_WRAP },
   { type = "slider", title = "滑动翻页灵敏度", summary = "左右滑切换回答的触发倍数", key = SharedDataKeys.SCROLL_SENSE, from = 0.5, to = 5, unit = "倍", step = 0.1 },
-  { type = "switch", title = "实体键翻页（墨水屏）", summary = "音量减 / PageDown 下一页，音量加 / PageUp 上一页；优先于切换回答", key = SharedDataKeys.EINK_KEY_PAGING },
-  { type = "switch", title = "反转音量翻页键", summary = "开启后音量加下一页、音量减上一页", key = SharedDataKeys.EINK_REVERSE_KEYS },
-  { type = "slider", title = "翻页重叠行数", summary = "上下页保留重复文字，避免页边界漏行", key = SharedDataKeys.EINK_OVERLAP_LINES, from = 1, to = 5, unit = "行", step = 1 },
   { type = "switch", title = "音量键切换回答", summary = "用音量键代替左右滑", key = SharedDataKeys.VOLUME_SWITCH_TAB },
   { type = "switch", title = "悬浮滚动按钮", summary = "回答页显示上下滚动按钮", key = SharedDataKeys.SHOW_VIRTUAL_SCROLL },
 

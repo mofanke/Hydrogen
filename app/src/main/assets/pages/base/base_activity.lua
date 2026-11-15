@@ -2,6 +2,7 @@
 -- Activity 基类
 
 local BasePage = require("pages.base.base_page")
+local Navigation = require("helpers.page_navigation")
 
 local BaseActivity = Extensions.Class(BasePage, {"BaseActivity"})
 
@@ -19,6 +20,10 @@ function BaseActivity:start(paramsKey)
   self:onCreate(params)
   self:build()
   self:setContentView()
+  Navigation.installButtons(self)
+  if not _G.onReadingKeyDown then
+    _G.onReadingKeyDown = self:runIfAlive(function(keyCode) return self:onReadingKeyDown(keyCode) end)
+  end
 end
 
 --- 关闭 Activity（final 方法，子类不应重写）

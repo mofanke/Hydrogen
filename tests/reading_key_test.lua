@@ -1,6 +1,7 @@
 -- tests/reading_key_test.lua
 -- 验证实体按键方向、设置优先级和异步翻页生命周期
 
+package.path = "app/src/main/assets/?.lua;" .. package.path
 local keys = { KEYCODE_VOLUME_UP = 24, KEYCODE_VOLUME_DOWN = 25, KEYCODE_PAGE_UP = 92, KEYCODE_PAGE_DOWN = 93 }
 import = function() end
 luajava = { bindClass = function(name)
@@ -72,6 +73,7 @@ page.isReadingTurnPending = false
 package.loaded["init_app"] = true
 package.loaded["pages.base.base_activity"] = {}
 Helpers = { Resources = { app = { id = { tag_last_time = 1, tag_last_name = 2 } } } }
+activity = { currentFocus = nil }
 local Main = dofile("app/src/main/assets/pages/activity/main/main_activity.lua")
 local host = { runIfAlive = function(_, callback) return callback end }
 Main.setupVolumeController(host)

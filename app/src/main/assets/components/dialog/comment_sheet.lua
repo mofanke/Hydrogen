@@ -238,6 +238,7 @@ function M.show(options)
   end
 
   self.bottomSheet.show()
+  require("helpers.page_navigation").bindDialog(self.bottomSheet, self.model)
 
   return self
 end

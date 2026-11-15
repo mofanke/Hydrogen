@@ -17,6 +17,7 @@ import "com.norman.webviewup.lib.WebViewUpgrade"
 import "com.norman.webviewup.lib.source.UpgradePackageSource"
 
 local BaseActivity = require("pages.base.base_activity")
+local Navigation = require("helpers.page_navigation")
 
 local MainActivity = Extensions.Class(BaseActivity, { "main" })
 
@@ -371,7 +372,7 @@ end
 
 function MainActivity:setupVolumeController()
   _G.onReadingKeyDown = self:runIfAlive(function(keyCode)
-    local fragment = _G.VolumeController and _G.VolumeController.activeFragment
+    local fragment = Navigation.activePage() or (_G.VolumeController and _G.VolumeController.activeFragment)
     if fragment and fragment.onReadingKeyDown and fragment:isAlive() then
       return fragment:onReadingKeyDown(keyCode)
     end

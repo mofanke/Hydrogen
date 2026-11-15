@@ -112,6 +112,7 @@ function BrowserFragment:showDailySectionListDialog(sectionId)
 
   local model = DailySectionListModel(sectionId)
   model:setupSingle(dialogViews.recycler_view, dialogViews.swipe_refresh)
+  require("helpers.page_navigation").bindDialog(dialog, model)
   model:refresh()
 
   dialog.onDismiss = function()
