@@ -15,8 +15,8 @@ android {
         applicationId "com.zhihu.hydrogen.x"
         minSdk 24
         targetSdk 37
-        versionCode 1
-        versionName "new"
+        versionCode 6141
+        versionName "0.6141-eink"
         resourceConfigurations += ['zh']
     }
 

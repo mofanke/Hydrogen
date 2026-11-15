@@ -6,8 +6,8 @@ import "com.google.android.material.dialog.MaterialAlertDialogBuilder"
 local M = {}
 
 M.name = "Hydrogen"
-M.versionName = "new"
-M.version = 0.614
+M.versionName = "eink"
+M.version = 0.6141
 M.packageName = activity.packageName
 
 function M.getName()

@@ -13,6 +13,8 @@ local LuaPager2Adapter = luajava.bindClass("org.luajvm.android.widget.LuaPager2A
 
 local BaseFragment = require("pages.base.base_fragment")
 local AnswerModel = require("models.content.answer_model")
+local ReadingPager = require("helpers.reading_pager")
+local KeyEvent = luajava.bindClass("android.view.KeyEvent")
 local WebViewHelper = require("components.views.web_view_helper")
 
 local AnswerFragment = Extensions.Class(BaseFragment, {"answer"})
@@ -622,6 +624,47 @@ function AnswerFragment:onCollect(autoToggle)
   })
 end
 
+--- 翻当前回答的一屏，页边界保留文字重叠
+--- @param direction string up 或 down
+--- @return boolean 是否接受翻页
+function AnswerFragment:turnReadingPage(direction)
+  if not self:isAlive() or not self.currentPageIds then return false end
+  local pageIds = self.currentPageIds
+  local webview = pageIds.webview
+  if not webview or webview.visibility ~= View.VISIBLE then return false end
+  self.views.appbar.setExpanded(false, false)
+  webview.post(self:runIfAlive(function()
+    if self.currentPageIds ~= pageIds then return end
+    ReadingPager.turn(webview, direction, {
+      topOverlay = pageIds.user_card_wrapper,
+      bottomOverlay = self.views.floating_toolbar,
+      buttonsOverlay = self.views.float_scroll_container,
+      overlapLines = Extensions.Config.getNumber(Constants.SharedDataKeys.EINK_OVERLAP_LINES, 2),
+    })
+  end))
+  return true
+end
+
+--- 处理当前回答的实体翻页键
+--- @param keyCode number Android 按键码
+--- @return boolean 是否消费按键
+function AnswerFragment:onReadingKeyDown(keyCode)
+  if not Extensions.Config.getBool(Constants.SharedDataKeys.EINK_KEY_PAGING) then return false end
+  local direction
+  if keyCode == KeyEvent.KEYCODE_PAGE_UP then
+    direction = "up"
+   elseif keyCode == KeyEvent.KEYCODE_PAGE_DOWN then
+    direction = "down"
+   elseif keyCode == KeyEvent.KEYCODE_VOLUME_UP or keyCode == KeyEvent.KEYCODE_VOLUME_DOWN then
+    local isUp = keyCode == KeyEvent.KEYCODE_VOLUME_UP
+    if Extensions.Config.getBool(Constants.SharedDataKeys.EINK_REVERSE_KEYS) then isUp = not isUp end
+    direction = isUp and "up" or "down"
+   else
+    return false
+  end
+  return self:turnReadingPage(direction)
+end
+
 function AnswerFragment:setupFloatButtons()
   local views = self.views
 
@@ -632,30 +675,8 @@ function AnswerFragment:setupFloatButtons()
     return
   end
 
-  local function scrollWebView(direction)
-    if not self.currentPageIds or not self.currentPageIds.webview then return end
-
-    local webview = self.currentPageIds.webview
-
-    if direction == "up" then
-      webview.evaluateJavascript("window.scrollY", {
-        onReceiveValue = function(scrollY)
-          local currentScroll = tonumber(scrollY) or 0
-          if currentScroll <= 0 then
-            self.views.appbar.setExpanded(true, true)
-           else
-            webview.evaluateJavascript("window.scrollBy(0, -window.innerHeight)", nil)
-          end
-        end
-      })
-     else -- direction == "down"
-      webview.evaluateJavascript("window.scrollBy(0, window.innerHeight)", nil)
-      self.views.appbar.setExpanded(false, true)
-    end
-  end
-
-  views.scroll_up.onClick = function() scrollWebView("up") end
-  views.scroll_down.onClick = function() scrollWebView("down") end
+  views.scroll_up.onClick = function() self:turnReadingPage("up") end
+  views.scroll_down.onClick = function() self:turnReadingPage("down") end
 end
 
 function AnswerFragment:initViews()

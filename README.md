@@ -1,5 +1,8 @@
 # Hydrogen
 
+本 fork 提供 `0.6141-eink` 墨水屏版：实体键翻当前回答、可调文字重叠和即时翻页。
+使用与构建说明见 [墨水屏按键阅读](docs/eink-reading.md)。
+
 > ⚠️ **项目维护延缓**  
 >
 > 由于[相关原因](https://github.com/zhihulite/Hydrogen/issues/159)，Hydrogen 项目维护已延缓。  
