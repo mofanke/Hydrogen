@@ -1,4 +1,4 @@
-﻿// image-viewer.js - 图片查看器
+// image-viewer.js - 图片查看器
 (() => {
     const ImageViewer = {
         name: 'ImageViewer',
@@ -38,7 +38,7 @@
 
         getImageSrc(img) {
             const token = img.getAttribute('data-original-token');
-            return token ? `https://pic1.zhimg.com/${token}` : img.src;
+            return img.dataset.original || (token ? `https://pic1.zhimg.com/${token}` : (img.currentSrc || img.src));
         },
 
         replaceSrcWithGif(src) {
@@ -137,19 +137,6 @@
 
                 const img = this.findImageAtPoint(event.clientX, event.clientY);
                 if (!img) return;
-
-                // GIF 处理逻辑
-                if (this.isGifPlayerAllowed() && this.isGifPlayer(img)) {
-                    // 检查是否已经播放过
-                    if (!this.isGifPlayed(img)) {
-                        // 第一次点击：播放 GIF
-                        this.playGif(img);
-                        event.stopPropagation();
-                        event.preventDefault();
-                        return; // 不继续打开图片查看器
-                    }
-                    // 第二次及以后：已经播放过，继续往下走打开图片查看器
-                }
 
                 // 打开图片查看器（普通图片 或 已播放的 GIF）
                 const images = this.getVisibleImages();

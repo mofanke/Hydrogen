@@ -1,128 +1,109 @@
-"""用 Chromium 检查分页是否完整覆盖文字及页面边界。"""
-
+"""验证原按钮滚动基准、可视视口、图片排版稳定与文末操作。"""
 from pathlib import Path
 import os
 import unittest
-
 from playwright.sync_api import sync_playwright
 
-SCRIPT = Path(__file__).resolve().parents[1] / "app/src/main/assets/static/js/features/reading-pager.js"
-
+ASSETS = Path(__file__).resolve().parents[1] / 'app/src/main/assets/static/js/features'
 
 class ReadingPagerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.playwright = sync_playwright().start()
-        cls.browser = cls.playwright.chromium.launch(executable_path=os.environ.get("PAGER_TEST_CHROMIUM"))
-
+        cls.driver = sync_playwright().start()
+        cls.browser = cls.driver.chromium.launch(executable_path=os.environ.get('PAGER_TEST_CHROMIUM'))
     @classmethod
     def tearDownClass(cls):
         cls.browser.close()
-        cls.playwright.stop()
-
+        cls.driver.stop()
     def setUp(self):
-        self.page = self.browser.new_page(viewport={"width": 480, "height": 640})
-
+        self.page = self.browser.new_page(viewport={'width':480,'height':640})
     def tearDown(self):
         self.page.close()
-
-    def fixture(self, font=20, smooth=False, image=False):
-        rows = []
-        for i in range(100):
-            if image and i == 35:
-                rows.append('<div style="height:850px;background:#dce8ef">彩色长图</div>')
-            height = font * (1.8 if i % 7 == 0 else 1.5)
-            rows.append(f'<p data-row="{i}" style="line-height:{height}px;font-size:{font}px">第 {i} 行：墨水屏阅读测试</p>')
-        behavior = "smooth" if smooth else "auto"
-        self.page.set_content(f'<style>html{{scroll-behavior:{behavior}}}body,p{{margin:0}}.RichText{{padding-top:100px}}</style>'
-                              '<main class="RichText">' + "".join(rows) + '</main><input>')
-        self.page.add_script_tag(path=str(SCRIPT))
-        self.page.evaluate("window.scrollTo({top:0,behavior:'instant'})")
-
-    def read_rows(self, top, bottom):
-        return self.page.evaluate("""([top,bottom]) => [...document.querySelectorAll('[data-row]')]
-            .filter(p => { const r = p.getBoundingClientRect(); return r.top >= top - 0.01 && r.bottom <= innerHeight - bottom + 0.01; })
-            .map(p => Number(p.dataset.row))""", [top, bottom])
-
-    def turn(self, direction, top=0, bottom=100, native_height=640, lines=2):
-        return self.page.evaluate("([d,t,b,h,l]) => HydrogenReadingPager.turn(d,t,b,h,l)",
-                                  [direction, top, bottom, native_height, lines])
-
-    def walk(self, use_original=False, bottom=100):
-        seen = set()
-        for _ in range(200):
-            before = self.page.evaluate("scrollY")
-            top = max(0, 100 - before)
-            seen.update(self.read_rows(top, bottom))
-            if use_original:
-                self.page.evaluate("window.scrollBy(0, innerHeight)")
-            else:
-                self.turn(1, top=top, bottom=bottom)
-            after = self.page.evaluate("scrollY")
-            if after == before:
-                break
-        return seen
-
-    def test_original_full_viewport_scroll_loses_lines(self):
-        self.fixture()
-        self.assertLess(len(self.walk(use_original=True)), 100)
-
-    def test_all_lines_readable_with_overlay_and_large_fonts(self):
-        for font in [16, 20, 32, 48]:
+    def fixture(self, font=20, extra=''):
+        rows = ''.join(f'<p id="p{i}" data-row="{i}">第 {i} 行阅读测试</p>' for i in range(100))
+        self.page.set_content(f'<style>body,p{{margin:0}}p{{font-size:{font}px;line-height:{font*1.5}px}}</style><main class="RichText">{extra}{rows}</main>')
+        self.page.add_script_tag(path=str(ASSETS/'reading-pager.js'))
+        self.page.evaluate("scrollTo({top:0,behavior:'instant'})")
+    def turn(self, direction, lines=2):
+        return self.page.evaluate('([d,l])=>HydrogenReadingPager.turn(d,l)',[direction,lines])
+    def rows(self):
+        return self.page.evaluate("[...document.querySelectorAll('[data-row]')].filter(p=>{const r=p.getBoundingClientRect();return r.top>=0&&r.bottom<=visualViewport.height}).map(p=>Number(p.dataset.row))")
+    def test_all_lines_visible_at_multiple_font_sizes(self):
+        for font in [16,20,32,48]:
             with self.subTest(font=font):
-                self.fixture(font=font)
-                self.assertEqual(self.walk(), set(range(100)))
-
-    def test_floating_buttons_and_long_color_image(self):
-        self.fixture(image=True)
-        self.assertEqual(self.walk(bottom=200), set(range(100)))
-
-    def test_instant_scroll_even_when_page_requests_smooth(self):
-        self.fixture(smooth=True)
-        self.turn(1)
-        self.assertGreater(self.page.evaluate("scrollY"), 0)
-        self.assertEqual(self.page.evaluate("document.documentElement.style.scrollBehavior"), "")
-
-    def test_reverse_and_start_end_boundaries(self):
+                self.fixture(font)
+                seen=set()
+                for _ in range(200):
+                    seen.update(self.rows())
+                    before=self.page.evaluate('scrollY')
+                    if self.turn(1)==before: break
+                self.assertEqual(seen,set(range(100)))
+    def test_same_scrollby_baseline_with_small_overlap(self):
         self.fixture()
-        self.assertTrue(self.turn(-1))
-        self.assertEqual(self.page.evaluate("scrollY"), 0)
-        self.turn(1)
+        self.assertEqual(self.turn(1),640-60)
         self.turn(-1)
-        self.assertEqual(self.page.evaluate("scrollY"), 0)
-        self.walk()
-        end = self.page.evaluate("scrollY")
-        self.turn(1)
-        self.assertEqual(self.page.evaluate("scrollY"), end)
-        self.assertIn(99, self.read_rows(0, 100))
-
-    def test_native_css_pixel_conversion(self):
+        self.assertEqual(self.page.evaluate('scrollY'),0)
+    def test_layout_viewport_larger_than_visible_screen(self):
         self.fixture()
-        self.turn(1, bottom=200, native_height=1280)
-        self.assertEqual(self.page.evaluate("scrollY"), 468)
-
-    def test_overlap_setting_changes_step(self):
+        self.page.evaluate("Object.defineProperty(window,'innerHeight',{value:1600,configurable:true})")
+        self.assertLessEqual(self.turn(1),640-60)
+    def test_real_page_zoom_uses_visual_viewport(self):
         self.fixture()
-        self.turn(1, lines=1)
-        one_line = self.page.evaluate("scrollY")
-        self.page.evaluate("window.scrollTo(0,0)")
-        self.turn(1, lines=5)
-        self.assertLess(self.page.evaluate("scrollY"), one_line)
-
-    def test_input_and_unlaid_out_view_do_not_scroll(self):
-        self.fixture()
-        self.page.locator("input").evaluate("e => e.focus({preventScroll:true})")
-        self.assertFalse(self.turn(1))
-        self.page.locator("input").evaluate("e => e.blur()")
-        self.assertFalse(self.turn(1, native_height=0))
-        self.assertEqual(self.page.evaluate("scrollY"), 0)
-
-    def test_short_content_stays_at_start(self):
+        session=self.page.context.new_cdp_session(self.page)
+        session.send('Emulation.setPageScaleFactor',{'pageScaleFactor':2})
+        visible=self.page.evaluate('visualViewport.height')
+        self.assertLess(visible,640)
+        self.assertLessEqual(self.turn(1),visible-60)
+    def test_short_and_end_boundaries(self):
         self.page.set_content('<p class="RichText">短回答</p>')
-        self.page.add_script_tag(path=str(SCRIPT))
-        self.turn(1)
-        self.assertEqual(self.page.evaluate("scrollY"), 0)
+        self.page.add_script_tag(path=str(ASSETS/'reading-pager.js'))
+        self.assertEqual(self.turn(1),0)
+        self.fixture()
+        for _ in range(30): self.turn(1)
+        end=self.page.evaluate('scrollY')
+        self.assertEqual(self.turn(1),end)
+        self.assertIn(99,self.rows())
+    def test_smooth_style_does_not_animate(self):
+        self.fixture()
+        self.page.evaluate("document.documentElement.style.scrollBehavior='smooth'")
+        self.assertGreater(self.turn(1),0)
+    def test_input_does_not_turn(self):
+        self.fixture(extra='<input>')
+        self.page.locator('input').evaluate('e=>e.focus({preventScroll:true})')
+        self.assertEqual(self.turn(1),0)
+    def test_overlap_setting(self):
+        self.fixture()
+        first=self.turn(1,1)
+        self.page.evaluate('scrollTo(0,0)')
+        self.assertLess(self.turn(1,5),first)
+    def install_content(self):
+        self.page.evaluate("window.messages=[];window.HydrogenBridge={execute:s=>messages.push(JSON.parse(s))}")
+        self.page.add_script_tag(path=str(ASSETS/'eink-content.js'))
+    def test_footer_is_at_end_and_comment_dispatches(self):
+        self.fixture()
+        self.install_content()
+        footer=self.page.locator('#hydrogen-reading-footer')
+        self.assertEqual(footer.count(),1)
+        self.assertGreater(footer.bounding_box()['y'],2500)
+        self.assertEqual(footer.evaluate('e=>getComputedStyle(e).position'),'static')
+        footer.get_by_text('评论',exact=True).click()
+        self.assertEqual(self.page.evaluate('JSON.parse(messages[0].data).action'),'readingComment')
+    def test_images_keep_ratio_and_do_not_stretch(self):
+        self.fixture(extra='<img id="test-image" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221000%22 height=%222000%22/%3E">')
+        self.install_content()
+        self.page.wait_for_function('document.querySelector("img").naturalWidth>0')
+        size=self.page.locator('img').bounding_box()
+        self.assertLessEqual(size['width'],480)
+        self.assertAlmostEqual(size['height']/size['width'],2,places=2)
+    def test_late_image_above_keeps_reading_position(self):
+        self.fixture(extra='<img id="late">')
+        self.install_content()
+        self.page.evaluate('scrollTo(0,900)')
+        self.page.evaluate('()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+        old=self.page.locator('#p35').bounding_box()['y']
+        self.page.evaluate("document.querySelector('#late').src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221000%22 height=%221400%22/%3E'")
+        self.page.wait_for_function('document.querySelector("#late").naturalWidth>0')
+        self.page.evaluate('()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+        self.assertAlmostEqual(self.page.locator('#p35').bounding_box()['y'],old,delta=2)
 
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
+if __name__=='__main__': unittest.main(verbosity=2)

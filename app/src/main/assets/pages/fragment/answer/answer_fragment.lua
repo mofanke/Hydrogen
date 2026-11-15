@@ -108,6 +108,12 @@ function AnswerFragment:setupToolbar()
 end
 
 function AnswerFragment:onBridgeMessage(action, data)
+  if action == "readingComment" or action == "readingCollect" then
+    activity.runOnUiThread(self:runIfAlive(function()
+      if action == "readingComment" then self:onComment() else self:onCollect(false) end
+    end))
+    return
+  end
   -- 桥回调在 WebView 的 JavaBridge 线程，须切主线程写 ViewPager2
   if action == "disableParentScroll" then
     activity.runOnUiThread(self:runIfAlive(function()
@@ -219,26 +225,12 @@ end
 
 -- 底部栏
 function AnswerFragment:setupBottomBar()
-  local views = self.views
-  views.vote_btn.onClick = function() self:onVote() end
-  views.thank_btn.onClick = function() self:onThank() end
-  views.comment_btn.onClick = function() self:onComment() end
-  -- 收藏按钮：点击弹出选择对话框，长按自动切换默认收藏夹
-  views.collect_btn.onClick = function() self:onCollect(false) end
-  views.collect_btn.onLongClick = function() self:onCollect(true) return true end
+  self.views.floating_toolbar.visibility = View.GONE
 end
 
 function AnswerFragment:updateBottomBar(data)
-  local views = self.views
-  if not data then error("updateBottomBar 传入 data 为空。") return end
-
-  views.vote_count.text = tostring(data.voteupCount or 0)
-  views.thank_count.text = tostring(data.thanksCount or 0)
-  views.comment_count.text = tostring(data.commentCount or 0)
-  views.collect_count.text = tostring(data.favlistsCount or 0)
-  views.vote_icon.imageBitmap = Helpers.Static.materialIcon(data.isLiked and "twotone_thumb_up" or "outline_thumb_up")
-  views.thank_icon.imageBitmap = Helpers.Static.materialIcon(data.isThanked and "twotone_favorite" or "outline_favorite_border")
-  views.collect_icon.imageBitmap = Helpers.Static.materialIcon(data.isFavorited and "twotone_bookmark" or "outline_bookmark_border")
+  if not data then return end
+  self:installReadingContent()
 end
 
 -- 滚动联动
@@ -282,6 +274,15 @@ function AnswerFragment:updateWebViewPadding(pageIds)
   end
 end
 
+--- 设置正文图片排版与文末操作入口
+--- @param pageIds table|nil 当前回答视图
+function AnswerFragment:installReadingContent(pageIds)
+  pageIds = pageIds or self.currentPageIds
+  if not pageIds or not pageIds.webview then return end
+  local script = Helpers.Static.getJSContent("features/eink-content")
+  pageIds.webview.evaluateJavascript(script, nil)
+end
+
 function AnswerFragment:setupWebView(webview, answerId, pageIds)
   webview.onScrollChange = function(view, sx, sy, osx, osy)
     self:onWebViewScroll(pageIds, sx, sy, osx, osy)
@@ -311,6 +312,7 @@ function AnswerFragment:setupWebView(webview, answerId, pageIds)
     end,
     onPageFinished = function(view, url)
       self:updateWebViewPadding(pageIds)
+      self:installReadingContent(pageIds)
       pageIds.progress.visibility = View.GONE
       pageIds.webview.visibility = View.VISIBLE
       -- loaded 不复位则同页永远无法再次加载（loadWebView 靠 loaded/loading 判重）
@@ -632,16 +634,17 @@ function AnswerFragment:turnReadingPage(direction)
   local pageIds = self.currentPageIds
   local webview = pageIds.webview
   if not webview or webview.visibility ~= View.VISIBLE then return false end
-  self.views.appbar.setExpanded(false, false)
-  webview.post(self:runIfAlive(function()
-    if self.currentPageIds ~= pageIds then return end
-    ReadingPager.turn(webview, direction, {
-      topOverlay = pageIds.user_card_wrapper,
-      bottomOverlay = self.views.floating_toolbar,
-      buttonsOverlay = self.views.float_scroll_container,
-      overlapLines = Extensions.Config.getNumber(Constants.SharedDataKeys.EINK_OVERLAP_LINES, 2),
-    })
-  end))
+  if self.isReadingTurnPending then return true end
+  self.isReadingTurnPending = true
+  ReadingPager.turn(webview, direction, {
+    overlapLines = Extensions.Config.getNumber(Constants.SharedDataKeys.EINK_OVERLAP_LINES, 2),
+    onComplete = self:runIfAlive(function(scrollY)
+      if self.currentPageIds == pageIds then
+        self.views.appbar.setExpanded(direction == "up" and scrollY <= 0, true)
+      end
+      self.isReadingTurnPending = false
+    end),
+  })
   return true
 end
 
