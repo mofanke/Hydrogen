@@ -6,11 +6,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.View;
-import android.view.inputmethod.InputMethodManager;
-
-import java.util.HashSet;
-import java.util.Set;
 
 import androidx.activity.EdgeToEdge;
 import androidx.core.splashscreen.SplashScreen;
@@ -23,31 +18,16 @@ public class LuaActivity extends org.luajvm.android.host.LuaActivity {
     private static final float DEFAULT_FONT_SIZE = 20.0f;
 
     private Context originalContext = null;
-    private final Set<Integer> readingKeys = new HashSet<>();
+    private final ReadingKeyDispatcher readingKeys = new ReadingKeyDispatcher();
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        int code = event.getKeyCode();
-        boolean isReadingKey = code == KeyEvent.KEYCODE_VOLUME_UP
-                || code == KeyEvent.KEYCODE_VOLUME_DOWN
-                || code == KeyEvent.KEYCODE_PAGE_UP || code == KeyEvent.KEYCODE_PAGE_DOWN;
-        if (isReadingKey) {
-            if (event.getAction() == KeyEvent.ACTION_UP && readingKeys.remove(code)) {
-                return true;
-            }
-            if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (readingKeys.contains(code)) return true;
-                View focus = getCurrentFocus();
-                InputMethodManager input = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-                boolean isEditing = (focus != null && focus.onCheckIsTextEditor())
-                        || (input != null && input.isAcceptingText());
-                if (!isEditing && event.getRepeatCount() == 0
-                        && Boolean.TRUE.equals(runFunc("onReadingKeyDown", code))) {
-                    readingKeys.add(code);
-                    return true;
-                }
-            }
-        }
+        if (!ReadingKeyDispatcher.isReadingKey(event.getKeyCode())) return super.dispatchKeyEvent(event);
+        boolean enabled = "true".equals(getSharedData("eink_key_paging"));
+        boolean controls = enabled && ContentPager.hasPagingControls(getWindow().getDecorView());
+        if (readingKeys.dispatch(event.getKeyCode(), event.getAction(), event.getRepeatCount(),
+                ContentPager.isEditing(getWindow().getDecorView()), controls,
+                () -> Boolean.TRUE.equals(runFunc("onReadingKeyDown", event.getKeyCode())))) return true;
         return super.dispatchKeyEvent(event);
     }
 

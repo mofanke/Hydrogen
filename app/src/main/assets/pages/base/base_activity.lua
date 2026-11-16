@@ -22,7 +22,11 @@ function BaseActivity:start(paramsKey)
   self:setContentView()
   Navigation.installButtons(self)
   if not _G.onReadingKeyDown then
-    _G.onReadingKeyDown = self:runIfAlive(function(keyCode) return self:onReadingKeyDown(keyCode) end)
+    _G.onReadingKeyDown = self:runIfAlive(function(keyCode)
+      local direction = Navigation.direction(keyCode)
+      if not direction then return false end
+      return Navigation.pressButton(self, direction)
+    end)
   end
 end
 

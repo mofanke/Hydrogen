@@ -2,7 +2,7 @@
 -- 验证主页、日报、通用正文、返回栈、双栏和弹窗翻页
 
 package.path = "app/src/main/assets/?.lua;" .. package.path
-local keys = { KEYCODE_VOLUME_UP = 24, KEYCODE_VOLUME_DOWN = 25, KEYCODE_PAGE_UP = 92, KEYCODE_PAGE_DOWN = 93, ACTION_DOWN = 0, ACTION_UP = 1 }
+local keys = { KEYCODE_VOLUME_UP = 24, KEYCODE_VOLUME_DOWN = 25, KEYCODE_PAGE_UP = 92, KEYCODE_PAGE_DOWN = 93, ACTION_DOWN = 0, ACTION_UP = 1, ACTION_MULTIPLE = 2 }
 local calls, webCalls = {}, {}
 local native = {
   isVisible = function(view) return view and view.visible end,
@@ -168,6 +168,7 @@ activity.currentFocus = nil
 
 local menu = { items = {} }
 menu.findItem = function(id) return menu.items[id] end
+menu.performIdentifierAction = function(id) return menu.items[id].listener.onMenuItemClick() end
 menu.add = function(_, id)
   local item = { setIcon = function() end, setShowAsAction = function() end }
   item.setOnMenuItemClickListener = function(callback) item.listener = callback end
@@ -184,6 +185,14 @@ menu.items = {}
 Navigation.refreshToolbar(home.views.toolbar)
 assert(menu.items[614302].listener.onMenuItemClick())
 assert(calls[#calls].view == daily.view, "工具栏按钮应翻当前日报")
+local buttonCalls = #calls
+assert(Navigation.dispatchKey(keys.KEYCODE_PAGE_DOWN))
+assert(#calls == buttonCalls + 1 and calls[#calls].view == daily.view, "按键必须调用当前虚拟按钮")
+local originalLoad = daily.loadMore
+function daily:loadMore() error("test failure") end
+tip = function() end
+assert(Navigation.dispatchKey(keys.KEYCODE_PAGE_DOWN), "翻页后的加载失败仍应消费按键")
+daily.loadMore = originalLoad
 local dialogRoot = { visible = true, target = daily.view }
 local dialog = { window = { decorView = dialogRoot }, isShowing = function() return true end }
 dialog.setOnKeyListener = function(listener) dialog.listener = listener end

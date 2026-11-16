@@ -26,8 +26,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,7 +34,7 @@ import java.util.concurrent.Future;
 public class EinkImageActivity extends Activity {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
-    private final Set<Integer> heldKeys = new HashSet<>();
+    private final ReadingKeyDispatcher keyDispatcher = new ReadingKeyDispatcher();
     private final LruCache<String, Bitmap> cache = new LruCache<String, Bitmap>(8 * 1024 * 1024) {
         @Override protected int sizeOf(String key, Bitmap value) { return value.getAllocationByteCount(); }
     };
@@ -275,18 +273,21 @@ public class EinkImageActivity extends Activity {
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
         int code = event.getKeyCode();
-        boolean volume = code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN;
-        boolean paging = code == KeyEvent.KEYCODE_PAGE_UP || code == KeyEvent.KEYCODE_PAGE_DOWN;
-        if (volume || paging) {
-            if (event.getAction() == KeyEvent.ACTION_UP) { heldKeys.remove(code); return true; }
-            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0 && heldKeys.add(code)) {
-                boolean up = code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_PAGE_UP;
-                if (volume && reverseKeys) up = !up;
-                turn(up ? -1 : 1);
-            }
+        if (!ReadingKeyDispatcher.isReadingKey(code)) return super.dispatchKeyEvent(event);
+        if (keyDispatcher.dispatch(code, event.getAction(), event.getRepeatCount(), false, true, () -> {
+            boolean volume = code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN;
+            boolean up = code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_PAGE_UP;
+            if (volume && reverseKeys) up = !up;
+            Button button = up ? previous : next;
+            if (button != null && button.isEnabled()) button.performClick();
             return true;
-        }
+        })) return true;
         return super.dispatchKeyEvent(event);
+    }
+
+    @Override protected void onPause() {
+        keyDispatcher.clear();
+        super.onPause();
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {

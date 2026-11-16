@@ -47,6 +47,31 @@ function M.activePage()
   return newest
 end
 
+--- 触发页面现有的虚拟翻页按钮
+--- @param page table 页面
+--- @param direction string up 或 down
+--- @return boolean 是否消费翻页
+function M.pressButton(page, direction)
+  if not page or not page:isAlive() then return false end
+  local toolbar = page.views and page.views.toolbar
+  local id = direction == "up" and PREVIOUS_ID or NEXT_ID
+  if toolbar and toolbar.menu.findItem(id) then
+    toolbar.menu.performIdentifierAction(id, 0)
+    return true
+  end
+  return page:turnReadingPage(direction)
+end
+
+--- 实体按键触发当前页面的虚拟翻页按钮
+--- @param code number Android 按键码
+--- @return boolean 是否消费按键
+function M.dispatchKey(code)
+  local direction = M.direction(code)
+  if not direction then return false end
+  local page = M.activePage() or (_G.VolumeController and _G.VolumeController.activeFragment)
+  return M.pressButton(page, direction)
+end
+
 --- 注册当前可见页面
 --- @param page table 页面
 function M.activate(page)
@@ -104,8 +129,11 @@ function M.turn(page, direction)
   if direction == "down" and not view.canScrollVertically(1) and model and model.loadMore
     and model.getCurrentRecyclerView and Objects.equals(model:getCurrentRecyclerView(), view) then
     local adapter = view.adapter
-    if adapter and adapter.itemCount == 0 and model.ensureLoaded then model:ensureLoaded()
-     else model:loadMore() end
+    local ok = pcall(function()
+      if adapter and adapter.itemCount == 0 and model.ensureLoaded then model:ensureLoaded()
+       else model:loadMore() end
+    end)
+    if not ok then tip("加载更多失败，请重试") end
   end
   return true
 end
@@ -162,9 +190,12 @@ function M.bindDialog(dialog, model)
       local direction = M.direction(code)
       if not direction then return false end
       if held[code] then return true end
-      if event.action ~= KeyEvent.ACTION_DOWN or event.repeatCount ~= 0 then return false end
+      if event.action ~= KeyEvent.ACTION_DOWN and event.action ~= KeyEvent.ACTION_MULTIPLE then return false end
       page.root_view = dialog.window.decorView
-      if M.turn(page, direction) then held[code] = true return true end
+      if M.turn(page, direction) then
+        if event.action == KeyEvent.ACTION_DOWN then held[code] = true end
+        return true
+      end
       return false
     end,
   }))

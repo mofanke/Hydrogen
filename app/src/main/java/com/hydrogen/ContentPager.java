@@ -3,12 +3,12 @@ package com.hydrogen;
 import android.graphics.Rect;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
 import android.webkit.WebView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.core.widget.NestedScrollView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.RecyclerView;
 
 /** 查找当前可见的阅读控件，并按可读高度翻动原生列表。 */
@@ -34,9 +34,22 @@ public final class ContentPager {
 
     public static boolean isEditing(View root) {
         View focus = root == null ? null : root.findFocus();
-        InputMethodManager input = root == null ? null : (InputMethodManager)
-                root.getContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-        return (focus != null && focus.onCheckIsTextEditor()) || (input != null && input.isAcceptingText());
+        return focus != null && focus.onCheckIsTextEditor();
+    }
+
+    public static boolean hasPagingControls(View root) {
+        if (!isVisible(root)) return false;
+        if (root instanceof Toolbar) {
+            Toolbar toolbar = (Toolbar) root;
+            if (toolbar.getMenu().findItem(614301) != null && toolbar.getMenu().findItem(614302) != null) return true;
+        }
+        if (root instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) root;
+            for (int i = group.getChildCount() - 1; i >= 0; i--) {
+                if (hasPagingControls(group.getChildAt(i))) return true;
+            }
+        }
+        return false;
     }
 
     public static boolean sameContainer(View first, View second) {

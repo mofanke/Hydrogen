@@ -372,11 +372,7 @@ end
 
 function MainActivity:setupVolumeController()
   _G.onReadingKeyDown = self:runIfAlive(function(keyCode)
-    local fragment = Navigation.activePage() or (_G.VolumeController and _G.VolumeController.activeFragment)
-    if fragment and fragment.onReadingKeyDown and fragment:isAlive() then
-      return fragment:onReadingKeyDown(keyCode)
-    end
-    return false
+    return Navigation.dispatchKey(keyCode)
   end)
   _G.VolumeController = {
     activeFragment = nil,

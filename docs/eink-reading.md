@@ -1,6 +1,6 @@
 # 墨水屏按键阅读
 
-本分支基于 Hydrogen 的 `448762c`，版本为 `0.6143-eink`，支持 Android 7.0（API 24）及以上。
+本分支基于 Hydrogen 的 `448762c`，版本为 `0.6144-eink`，支持 Android 7.0（API 24）及以上。
 保留原有彩色图片与主题。
 
 ## 使用
@@ -35,6 +35,14 @@
 
 评论列表、日报栏目列表和通用底部弹窗支持实体键翻页，长按一次只翻一屏。
 输入文字时保留控件原有按键行为。工具栏菜单重建后继续保留翻页箭头。
+
+## PageUp / PageDown 与虚拟按钮一致性
+
+启用实体键翻页时，PageUp/PageDown 通过当前页面的虚拟翻页菜单触发同一回调。
+图片查看器的按键直接触发底部上一段/下一段按钮。
+一次按下、重复和松开序列由应用消费，独立 MULTIPLE 事件只触发一次。
+设备首次事件带 repeatCount 时也只翻一屏；已提供应用翻页控件的页面不会因处理失败再执行控件原生 Page 翻页。
+输入状态按当前焦点判断，活动的输入连接不会单独阻止正文按键。
 
 ## 图片阅读
 
@@ -95,4 +103,11 @@ java -cp /tmp/hydrogen-image-tests ImageTilesTest
 javac -cp /path/to/luajvm-core-1.0.0.jar -d /tmp/hydrogen-navigation-tests tests/PageNavigationTest.java app/src/main/java/com/hydrogen/PageStep.java tests/PageStepTest.java
 java -cp /tmp/hydrogen-navigation-tests:/path/to/luajvm-core-1.0.0.jar PageNavigationTest
 java -cp /tmp/hydrogen-navigation-tests PageStepTest
+```
+
+按键事件与真实 LuaJVM 桥接联合回归：
+
+```bash
+javac -cp /path/to/luajvm-core-1.0.0.jar:/path/to/android.jar -d /tmp/hydrogen-key-tests app/src/main/java/com/hydrogen/ReadingKeyDispatcher.java tests/ReadingKeyBridgeTest.java
+java -cp /tmp/hydrogen-key-tests:/path/to/luajvm-core-1.0.0.jar ReadingKeyBridgeTest
 ```
