@@ -135,7 +135,9 @@
 
                 if (!this.isImageInValidContainer(target)) return;
 
-                const img = this.findImageAtPoint(event.clientX, event.clientY);
+                const img = this.findImageAtPoint(event.clientX, event.clientY) ||
+                    (!target.closest?.('a,button,input,select,textarea,[role="button"]') &&
+                        target.closest?.("figure")?.querySelector("img"));
                 if (!img) return;
 
                 // 打开图片查看器（普通图片 或 已播放的 GIF）

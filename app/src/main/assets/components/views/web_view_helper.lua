@@ -294,6 +294,13 @@ function M:setWebViewClient(callbacks)
         self:evaluateJavascript(mergedModulesJS)
       end
     end,
+    onPageFinished = function(view, url)
+      local script = Helpers.Static.getJSContent("features/reading-layout")
+      local kind = self.settings.pageType
+      local isReading = kind == "answer" or kind == "daily" or kind == "article" or kind == "pin"
+      local lines = Extensions.Config.getNumber(Constants.SharedDataKeys.EINK_OVERLAP_LINES, 2)
+      self:evaluateJavascript(script .. string.format("\nHydrogenReadingLayout.init(%s, %d);", tostring(isReading), lines))
+    end,
     shouldInterceptRequest = function(view, url)
       return self:onInterceptRequest(view, url)
     end,

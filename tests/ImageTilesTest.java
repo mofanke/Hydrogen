@@ -23,6 +23,9 @@ public class ImageTilesTest {
         check(6000,6000,1264,1400,true);
         check(300,100,1264,1400,false);
         check(16000,32000,4000,4000,false);
+        ImageTiles tail=new ImageTiles(1000,1605,1000,1400,true,20);
+        int[] finalRegion=tail.region(tail.size()-1);
+        if(finalRegion[1]!=1380 || finalRegion[3]-finalRegion[1]!=225) throw new AssertionError("末段不得回填成完整高度");
         Random random=new Random(7);
         for(int i=0;i<100;i++) check(1+random.nextInt(10000),1+random.nextInt(40000),500+random.nextInt(1500),700+random.nextInt(2000),random.nextBoolean());
         System.out.println("104 组长图/宽图分段覆盖、比例与区域解码内存边界通过");

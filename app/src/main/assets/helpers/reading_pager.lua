@@ -9,7 +9,7 @@ local pagingScript
 --- @param direction string up 或 down
 --- @param options table 重叠行数与完成回调
 function M.turn(webview, direction, options)
-  pagingScript = pagingScript or Helpers.Static.getJSContent("features/reading-pager")
+  pagingScript = pagingScript or (Helpers.Static.getJSContent("features/reading-layout") .. "\n" .. Helpers.Static.getJSContent("features/reading-pager"))
   local lines = math.max(1, math.min(5, options.overlapLines or 2))
   local request = string.format("\nHydrogenReadingPager.turn(%d, %d);",
     direction == "up" and -1 or 1, lines)

@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapRegionDecoder;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -77,7 +78,7 @@ public class EinkImageActivity extends Activity {
         getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         image = new ImageView(this);
-        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        image.setScaleType(ImageView.ScaleType.MATRIX);
         root.addView(image, new LinearLayout.LayoutParams(-1, 0, 1));
         status = new TextView(this);
         status.setTextColor(Color.BLACK);
@@ -234,10 +235,19 @@ public class EinkImageActivity extends Activity {
                         bitmap = Bitmap.createBitmap(preview, area[0], area[1], area[2] - area[0], area[3] - area[1]);
                     }
                     if (bitmap == null) throw new IllegalStateException();
+                    bitmap.setDensity(Bitmap.DENSITY_NONE);
                     cache.put(key, bitmap);
                 }
                 Bitmap result = bitmap;
-                main.post(() -> { if (!destroyed && request == generation) image.setImageBitmap(result); });
+                main.post(() -> {
+                    if (destroyed || request != generation) return;
+                    image.setImageBitmap(result);
+                    float scale = Math.min(plan.scale * plan.sampleSize(),
+                            Math.min((float) image.getWidth() / result.getWidth(), (float) image.getHeight() / result.getHeight()));
+                    Matrix matrix = new Matrix();
+                    matrix.setScale(scale, scale);
+                    image.setImageMatrix(matrix);
+                });
             } catch (Exception e) {
                 main.post(() -> { if (!destroyed && request == generation) status.setText("当前图片段解码失败，可重新打开重试"); });
             }

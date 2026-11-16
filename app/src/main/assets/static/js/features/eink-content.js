@@ -4,7 +4,7 @@
     const style = document.createElement('style');
     style.textContent = `
         html, body { overflow-anchor: none; }
-        .RichText img, .ztext img { max-width:100% !important; width:auto !important; height:auto !important; max-height:none !important; object-fit:contain; }
+        .RichText img, .ztext img { max-width:100% !important; width:auto !important; height:auto !important; max-height:var(--hydrogen-image-height,none) !important; object-fit:contain; }
         .RichText figure, .ztext figure { max-width:100%; }
         #hydrogen-reading-footer { display:flex; gap:16px; justify-content:center; padding:28px 8px 60px; clear:both; }
         #hydrogen-reading-footer button { font:inherit; padding:10px 20px; background:transparent; color:inherit; border:1px solid currentColor; border-radius:8px; }
@@ -30,6 +30,7 @@
         }
     }
     function restore() {
+        if (window.HydrogenReadingLayout) return;
         if (!anchor) return;
         const node = anchor.node || anchor.range.startContainer;
         if (!node.isConnected) return;

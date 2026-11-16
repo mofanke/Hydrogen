@@ -33,9 +33,9 @@ public final class ImageTiles {
 
     public int[] region(int index) {
         if (index < 0 || index >= size()) throw new IndexOutOfBoundsException();
-        int x = (int) Math.min((long) (index % columns) * stepX, imageWidth - tileWidth);
-        int y = (int) Math.min((long) (index / columns) * stepY, imageHeight - tileHeight);
-        return new int[]{x, y, x + tileWidth, y + tileHeight};
+        int x = (int) ((long) (index % columns) * stepX);
+        int y = (int) ((long) (index / columns) * stepY);
+        return new int[]{x, y, (int) Math.min(imageWidth, (long) x + tileWidth), (int) Math.min(imageHeight, (long) y + tileHeight)};
     }
 
     public int sampleSize() {
