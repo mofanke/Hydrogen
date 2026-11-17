@@ -70,6 +70,28 @@ assert(page:onReadingKeyDown(keys.KEYCODE_PAGE_DOWN))
 assert(#turns == count, "同一翻页未完成时不能重复提交")
 page.isReadingTurnPending = false
 
+local toolbarOptions
+Helpers = {
+  Static = { materialDrawable = function() return {} end },
+  UI = { setupToolbar = function(_, options) toolbarOptions = options end },
+}
+GestureDetector = { OnGestureListener = {} }
+GestureDetectorCompat = function() return {} end
+luajava.createProxy = function(_, callbacks) return callbacks end
+page.views.toolbar = {}
+page.views.collapsing_toolbar = {}
+page:setupToolbar()
+local refresh = toolbarOptions.menu[1]
+assert(refresh.id == "refresh" and refresh.icon and refresh.asAction == "always", "回答刷新必须直接显示在工具栏")
+local firstReloads, secondReloads = 0, 0
+page.currentHelper = { reload = function() firstReloads = firstReloads + 1 end }
+refresh.click()
+page.currentHelper = { reload = function() secondReloads = secondReloads + 1 end }
+refresh.click()
+assert(firstReloads == 1 and secondReloads == 1, "切换回答后必须刷新当前回答")
+page.currentHelper = nil
+refresh.click()
+page.views.toolbar = nil
 package.loaded["init_app"] = true
 package.loaded["pages.base.base_activity"] = {}
 Helpers = { Resources = { app = { id = { tag_last_time = 1, tag_last_name = 2 } } } }

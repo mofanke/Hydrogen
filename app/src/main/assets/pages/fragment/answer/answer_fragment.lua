@@ -49,7 +49,10 @@ function AnswerFragment:setupToolbar()
   Helpers.UI.setupToolbar(toolbar, {
     title = self.title,
     menu = {
-      { id = "refresh", title = "刷新", click = function()
+      { id = "refresh", title = "刷新",
+        icon = Helpers.Static.materialDrawable("twotone_refresh", 24),
+        asAction = "always",
+        click = function()
           if self.currentHelper then
             self.currentHelper:reload()
           end

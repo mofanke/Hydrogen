@@ -93,6 +93,35 @@ for _, entry in ipairs({ { "日报", "daily" }, { "收藏", "collections" }, { "
   assert(home:onReadingKeyDown(keys.KEYCODE_VOLUME_DOWN))
   assert(calls[#calls].view == home.pageModels[entry[2]].view, "抽屉页面必须翻自身列表")
 end
+local toolbarOptions
+Helpers.UI = { setupToolbar = function(_, options) toolbarOptions = options end }
+home.views.toolbar = {}
+home:updateToolbarMenu("主页")
+local refresh = toolbarOptions.menu[1]
+assert(refresh.id == "refresh" and refresh.icon and refresh.asAction == "always", "刷新必须直接显示在工具栏")
+local refreshed = {}
+for _, name in ipairs({ "推荐", "想法", "热榜", "关注" }) do
+  local tabName = name
+  home.pageModels.home[name].refresh = function() refreshed[#refreshed + 1] = tabName end
+end
+home.currentPage = "主页"
+for i, tab in ipairs(home.displayTabs) do
+  home.homePageViews.view_pager.currentItem = i - 1
+  refresh.click()
+  assert(refreshed[#refreshed] == tab.name, "刷新必须作用于当前主页栏目")
+end
+assert(#refreshed == 4, "每次点击只刷新一个栏目")
+for _, entry in ipairs({ { "日报", "daily" }, { "收藏", "collections" }, { "关注", "follow_content" } }) do
+  local count = 0
+  home.pageModels[entry[2]].refresh = function() count = count + 1 end
+  home.currentPage = entry[1]
+  home:updateToolbarMenu(entry[1])
+  toolbarOptions.menu[1].click()
+  assert(count == 1, "抽屉页必须刷新当前列表")
+end
+home.currentPage = nil
+refresh.click()
+home.views.toolbar = nil
 local daily = home.pageModels.daily
 home.currentPage = "日报"
 daily.view.adapter.itemCount = 0

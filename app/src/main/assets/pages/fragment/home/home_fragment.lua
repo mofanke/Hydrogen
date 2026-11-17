@@ -687,6 +687,14 @@ function HomeFragment:updateToolbarMenu(pageName)
   local isCollection = (pageName == "收藏")
 
   local menuItems = {
+    { id = "refresh", title = "刷新",
+      icon = Helpers.Static.materialDrawable("twotone_refresh", 24),
+      asAction = "always",
+      click = function()
+        local model = self:_getCurrentModel()
+        if model then model:refresh() end
+      end
+    },
     { id = isCollection and "add" or "scan",
       title = isCollection and "新建收藏夹" or "扫描",
       icon = Helpers.Static.materialDrawable(isCollection and "twotone_add" or "twotone_qr_code_scanner", 24),
